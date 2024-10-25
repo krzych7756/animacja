@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Karuzela ze Zdjęciami</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: white;
+    }
+    .fade-in {
+      opacity: 0;
+      transition: opacity 1.5s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Ustawienia sceny
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Ręcznie definiowane ścieżki do zdjęć
+    const imagePaths = [
+      'path/to/photo1.jpg',
+      'path/to/photo2.jpg',
+      'path/to/photo3.jpg',
+      // ... Dodaj ścieżki do pozostałych zdjęć
+      'path/to/photo28.jpg'
+    ];
+
+    // Parametry karuzeli
+    const images = [];
+    const radius = 4;
+    const angleStep = (2 * Math.PI) / imagePaths.length;
+    const textureLoader = new THREE.TextureLoader();
+
+    // Załaduj zdjęcia i ustaw w przestrzeni
+    imagePaths.forEach((path, i) => {
+      const texture = textureLoader.load(path);
+      const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      const plane = new THREE.Mesh(geometry, material);
+
+      // Pozycjonowanie w karuzeli
+      const angle = i * angleStep;
+      plane.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+      plane.lookAt(0, 0, 0);
+
+      // Skala dla efektu 3D
+      const scale = 1 - (Math.abs(i - imagePaths.length / 2) / imagePaths.length) * 0.6;
+      plane.scale.set(scale, scale, 1);
+
+      images.push(plane);
+      scene.add(plane);
+    });
+
+    // Ustawienia kamery
+    camera.position.z = 5;
+
+    // Funkcja animacji
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Obrót karuzeli
+      images.forEach((image, index) => {
+        const angle = angleStep * index + Date.now() * 0.0005;
+        image.position.x = Math.cos(angle) * radius;
+        image.position.z = Math.sin(angle) * radius;
+
+        // Skala dla efektu perspektywy
+        const distanceFromCenter = 1.5 + image.position.z / radius;
+        image.scale.set(distanceFromCenter, distanceFromCenter, 1);
+
+        // Rozmycie w tle
+        const blurAmount = 1 - distanceFromCenter * 0.3;
+        image.material.opacity = blurAmount > 0.2 ? 1 : blurAmount;
+
+        // Obracanie w stronę kamery
+        image.lookAt(camera.position);
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // Efekt fade-in przy załadowaniu
+    window.addEventListener('load', () => {
+      document.body.classList.add('fade-in');
+      setTimeout(() => {
+        document.body.classList.add('visible');
+        animate();
+      }, 500);
+    });
+
+    // Obsługa responsywności
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
+  </script>
+</body>
+</html>
